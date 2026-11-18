@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Checker IP| TCC v1.0</title>
+    <link rel="stylesheet" href="stile.css">
+</head>
+<body>
+    <header>
+    <div class="header-content">
+      <div class="logo">
+              IP Check
+        <span>| TCC Técnico</span>
+      </div>
+      <nav>
+        <a href="#meu-ip">Meu IP</a>
+        <a href="#consultar">Consultar IP</a>
+        <a href="#sobre">Sobre IP</a>
+      </nav>
+    </div>
+  </header><main>
+    <!-- Hero -->
+    <section class="hero">
+      <h1>Verificador de Endereço IP</h1>
+      <p>Descubra seu endereço IP público e consulte informações de qualquer IP de forma rápida e educativa.</p>
+    </section>
+
+    <!-- Meu IP -->
+    <section id="meu-ip" class="card">
+      <h2> Seu IP Público</h2>
+      
+      <div class="ip-box">
+        <div class="ip-label">Seu endereço IP atual</div>
+        <div class="ip-value" id="meu-ip-valor">
+          <span class="loading">Carregando...</span>
+        </div>
+      </div>
+
+      <div class="info-grid" id="meu-ip-info">
+        <!-- Preenchido via JavaScript -->
+      </div>
+    </section>
+
+    <!-- Consultar IP -->
+    <section id="consultar" class="card">
+      <h2> Consultar outro IP</h2>
+      
+      <form class="search-form" id="form-consulta">
+        <input 
+          type="text" 
+          id="input-ip" 
+          placeholder="Digite um IP (ex: 8.8.8.8)" 
+          required
+          title="Digite um endereço IPv4 ou IPv6 válido"
+        >
+        <button type="submit" class="btn" id="btn-consultar">Consultar</button>
+      </form>
+
+      <div id="resultado-consulta" style="display: none;">
+        <div class="ip-box">
+          <div class="ip-label">IP consultado</div>
+          <div class="ip-value" id="ip-consultado"></div>
+        </div>
+        <div class="info-grid" id="info-consulta"></div>
+      </div>
+    </section>
+
+    <!-- Sobre IP -->
+    <section id="sobre" class="card">
+      <h2> O que é um Endereço IP?</h2>
+      
+      <div class="edu-grid">
+        <div class="edu-card">
+          <h3>O que é IP?</h3>
+          <p>IP (Internet Protocol) é um número único que identifica um dispositivo na internet ou em uma rede local. Funciona como um “endereço residencial” digital.</p>
+        </div>
+        
+        <div class="edu-card">
+          <h3>IPv4 vs IPv6</h3>
+          <p><strong>IPv4:</strong> formato clássico (ex: 192.168.1.1)<br>
+          <strong>IPv6:</strong> versão mais nova, com bem mais endereços disponíveis (ex: 2001:0db8:...)</p>
+        </div>
+        
+        <div class="edu-card">
+          <h3>IP Público x Privado</h3>
+          <p><strong>Público:</strong> visível na internet (o que este site mostra)<br>
+          <strong>Privado:</strong> usado dentro da sua casa/empresa (ex: 192.168.x.x)</p>
+        </div>
+        
+        <div class="edu-card">
+          <h3>Para que serve?</h3>
+          <p>Permite que sites, servidores e dispositivos se comuniquem. Também é usado para geolocalização aproximada, segurança e roteamento de dados.</p>
+        </div>
+      </div>
+    </section>
+  </main>
+  <footer>
+    <p>Projeto desenvolvido para o <strong>TCC do Curso Técnico</strong> • 2025</p>
+    <p style="margin-top: 0.4rem;">Feito com HTML + CSS puro • Dados via API pública</p>
+  </footer>
+  <script>
+    // Função para formatar os dados de um IP
+    function criarInfoGrid(dados, containerId) {
+      const container = document.getElementById(containerId);
+      if (!dados) {
+        container.innerHTML = '<p style="color:#94a3b8">Não foi possível obter informações detalhadas.</p>';
+        return;
+      }
+
+      const itens = [
+        { label: 'Cidade', valor: dados.city || '—' },
+        { label: 'Região', valor: dados.region || '—' },
+        { label: 'País', valor: dados.country_name || dados.country || '—' },
+        { label: 'Provedor (ISP)', valor: dados.org || dados.isp || '—' },
+        { label: 'Timezone', valor: dados.timezone || '—' },
+        { label: 'Latitude', valor: dados.latitude || '—' },
+        { label: 'Longitude', valor: dados.longitude || '—' },
+      ];
+
+      container.innerHTML = itens.map(item => `
+        <div class="info-item">
+          <strong>${item.label}</strong>
+          <span>${item.valor}</span>
+        </div>
+      `).join('');
+    }
+
+    // 1. Detectar o IP do usuário
+    async function carregarMeuIP() {
+      try {
+        // Usando ipapi.co (gratuita e sem chave para uso básico)
+        const res = await fetch('https://ipapi.co/json/');
+        const dados = await res.json();
+
+        if (dados.error) throw new Error(dados.reason);
+
+        document.getElementById('meu-ip-valor').textContent = dados.ip;
+        criarInfoGrid(dados, 'meu-ip-info');
+      } catch (erro) {
+        console.error(erro);
+        document.getElementById('meu-ip-valor').innerHTML = '<span style="color:#f87171">Erro ao carregar IP</span>';
+        document.getElementById('meu-ip-info').innerHTML = `
+          <p style="color:#94a3b8">Tente recarregar a página. Se o erro continuar, a API pode estar temporariamente indisponível.</p>
+        `;
+      }
+    }
+
+    // 2. Consultar IP digitado
+    document.getElementById('form-consulta').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      
+      const input = document.getElementById('input-ip');
+      const btn = document.getElementById('btn-consultar');
+      const ip = input.value.trim();
+
+      if (!ip) return;
+
+      btn.disabled = true;
+      btn.textContent = 'Consultando...';
+
+      try {
+        const res = await fetch(`https://ipapi.co/${ip}/json/`);
+        const dados = await res.json();
+
+        if (dados.error) {
+          throw new Error(dados.reason || 'IP inválido ou não encontrado');
+        }
+
+        document.getElementById('ip-consultado').textContent = dados.ip;
+        criarInfoGrid(dados, 'info-consulta');
+        document.getElementById('resultado-consulta').style.display = 'block';
+      } catch (erro) {
+        alert('Erro: ' + erro.message);
+        document.getElementById('resultado-consulta').style.display = 'none';
+      } finally {
+        btn.disabled = false;
+        btn.textContent = 'Consultar';
+      }
+    });
+
+    // Inicia ao carregar a página
+    carregarMeuIP();
+  </script>
+    
+</body>
+</html>
